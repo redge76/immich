@@ -5,7 +5,7 @@ import { NotificationType, notificationController } from '$lib/components/shared
 import { AppRoute } from '$lib/constants';
 import type { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
 import { assetViewingStore } from '$lib/stores/asset-viewing.store';
-import { isSelectingAllAssets, type AssetStore } from '$lib/stores/assets.store';
+import { isSelectingAllAssets, type AssetStore } from '$lib/stores/assets-store.svelte';
 import { downloadManager } from '$lib/stores/download';
 import { preferences } from '$lib/stores/user.store';
 import { downloadRequest, getKey, withError } from '$lib/utils';
@@ -476,7 +476,7 @@ export const selectAllAssets = async (assetStore: AssetStore, assetInteraction: 
       if (!get(isSelectingAllAssets)) {
         break; // Cancelled
       }
-      assetInteraction.selectAssets(bucket.assets);
+      assetInteraction.selectAssets(bucket.getAssets().map((a) => $state.snapshot(a)));
 
       // We use setTimeout to allow the UI to update. Otherwise, this may
       // cause a long delay between the start of 'select all' and the

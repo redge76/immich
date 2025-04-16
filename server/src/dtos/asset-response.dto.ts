@@ -102,7 +102,7 @@ const mapStack = (entity: AssetEntity) => {
 };
 
 // if an asset is jsonified in the DB before being returned, its buffer fields will be hex-encoded strings
-const hexOrBufferToBase64 = (encoded: string | Buffer) => {
+export const hexOrBufferToBase64 = (encoded: string | Buffer) => {
   if (typeof encoded === 'string') {
     return Buffer.from(encoded.slice(2), 'hex').toString('base64');
   }
@@ -110,7 +110,7 @@ const hexOrBufferToBase64 = (encoded: string | Buffer) => {
   return encoded.toString('base64');
 };
 
-export function mapAsset(entity: AssetEntity, options: AssetMapOptions = {}): AssetResponseDto {
+export function mapAsset(entity: AssetEntity & { dimensions?: any, height?: any, width?: any }, options: AssetMapOptions = {}): AssetResponseDto & { dimensions?: any, height?: any, width?: any } {
   const { stripMetadata = false, withStack = false } = options;
 
   if (stripMetadata) {
@@ -148,6 +148,9 @@ export function mapAsset(entity: AssetEntity, options: AssetMapOptions = {}): As
     isTrashed: !!entity.deletedAt,
     duration: entity.duration ?? '0:00:00.00000',
     exifInfo: entity.exifInfo ? mapExif(entity.exifInfo) : undefined,
+    dimensions: entity.dimensions,
+    height: entity.height,
+    width: entity.width,
     livePhotoVideoId: entity.livePhotoVideoId,
     tags: entity.tags?.map((tag) => mapTag(tag)),
     people: peopleWithFaces(entity.faces),

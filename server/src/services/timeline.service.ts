@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AssetResponseDto, SanitizedAssetResponseDto, mapAsset } from 'src/dtos/asset-response.dto';
+import { AssetResponseDto, SanitizedAssetResponseDto, hexOrBufferToBase64, mapAsset } from 'src/dtos/asset-response.dto';
 import { AuthDto } from 'src/dtos/auth.dto';
-import { TimeBucketAssetDto, TimeBucketDto, TimeBucketResponseDto } from 'src/dtos/time-bucket.dto';
+import { LiteTimeBucketAssetDto, LiteTimeBucketAssetResponseDto, LiteTimeBucketDto, LiteTimeBucketResponseDto, TimeBucketAssetDto, TimeBucketDto, TimeBucketResponseDto } from 'src/dtos/time-bucket.dto';
 import { Permission } from 'src/enum';
-import { TimeBucketOptions } from 'src/repositories/asset.repository';
+import { TimeBucketOptions, TimeBucketSize } from 'src/repositories/asset.repository';
 import { BaseService } from 'src/services/base.service';
 import { getMyPartnerIds } from 'src/utils/asset.util';
+import { PaginationResult } from 'src/utils/pagination';
 
 @Injectable()
 export class TimelineService extends BaseService {
@@ -27,6 +28,18 @@ export class TimelineService extends BaseService {
       : assets.map((asset) => mapAsset(asset, { stripMetadata: true, auth }));
   }
 
+  async getLiteTimeBucket(
+    auth: AuthDto,
+    dto: LiteTimeBucketAssetDto,
+  ) {
+    await this.timeBucketChecks(auth, dto);
+    const timeBucketOptions = await this.buildTimeBucketOptions(auth, { ...dto, size: TimeBucketSize.MONTH });
+
+    const page = dto.page;
+    const size = 10;
+    return await this.assetRepository.getLiteTimeBucket({ skip: page, take: size }, dto.timeBucket, timeBucketOptions);
+  }
+
   private async buildTimeBucketOptions(auth: AuthDto, dto: TimeBucketDto): Promise<TimeBucketOptions> {
     const { userId, ...options } = dto;
     let userIds: string[] | undefined = undefined;
@@ -46,7 +59,7 @@ export class TimelineService extends BaseService {
     return { ...options, userIds };
   }
 
-  private async timeBucketChecks(auth: AuthDto, dto: TimeBucketDto) {
+  private async timeBucketChecks(auth: AuthDto, dto: TimeBucketDto | LiteTimeBucketDto) {
     if (dto.albumId) {
       await this.requireAccess({ auth, permission: Permission.ALBUM_READ, ids: [dto.albumId] });
     } else {

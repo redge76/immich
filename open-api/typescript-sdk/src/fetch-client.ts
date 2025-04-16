@@ -1,6 +1,6 @@
 /**
  * Immich
- * 1.128.0
+ * 1.129.0
  * DO NOT MODIFY - This file has been generated using oazapfts.
  * See https://www.npmjs.com/package/oazapfts
  */
@@ -1372,6 +1372,20 @@ export type TagUpdateDto = {
 export type TimeBucketResponseDto = {
     count: number;
     timeBucket: string;
+};
+export type LiteTimeBucketAssetResponseDto = {
+    height: number;
+    id: string;
+    isArchived: boolean;
+    isFavorite: boolean;
+    isTrashed: boolean;
+    localDateTime: string;
+    thumbhash?: string | null;
+    width: number;
+};
+export type LiteTimeBucketResponseDto = {
+    hasNextPage: boolean;
+    liteAssets: LiteTimeBucketAssetResponseDto[];
 };
 export type TrashResponseDto = {
     count: number;
@@ -3260,6 +3274,42 @@ export function getTimeBuckets({ albumId, isArchived, isFavorite, isTrashed, key
         ...opts
     }));
 }
+export function getLiteTimeBucket({ albumId, isArchived, isFavorite, isTrashed, key, order, personId, size, tagId, timeBucket, userId, withPartners, withStacked }: {
+    albumId?: string;
+    isArchived?: boolean;
+    isFavorite?: boolean;
+    isTrashed?: boolean;
+    key?: string;
+    order?: AssetOrder;
+    personId?: string;
+    size: TimeBucketSize;
+    tagId?: string;
+    timeBucket: string;
+    userId?: string;
+    withPartners?: boolean;
+    withStacked?: boolean;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: LiteTimeBucketResponseDto;
+    }>(`/timeline/liteBucket${QS.query(QS.explode({
+        albumId,
+        isArchived,
+        isFavorite,
+        isTrashed,
+        key,
+        order,
+        personId,
+        size,
+        tagId,
+        timeBucket,
+        userId,
+        withPartners,
+        withStacked
+    }))}`, {
+        ...opts
+    }));
+}
 export function emptyTrash(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -3580,7 +3630,8 @@ export enum ManualJobName {
     TagCleanup = "tag-cleanup",
     UserCleanup = "user-cleanup",
     MemoryCleanup = "memory-cleanup",
-    MemoryCreate = "memory-create"
+    MemoryCreate = "memory-create",
+    BackupDatabase = "backup-database"
 }
 export enum JobName {
     ThumbnailGeneration = "thumbnailGeneration",
@@ -3647,11 +3698,21 @@ export enum SyncEntityType {
     UserV1 = "UserV1",
     UserDeleteV1 = "UserDeleteV1",
     PartnerV1 = "PartnerV1",
-    PartnerDeleteV1 = "PartnerDeleteV1"
+    PartnerDeleteV1 = "PartnerDeleteV1",
+    AssetV1 = "AssetV1",
+    AssetDeleteV1 = "AssetDeleteV1",
+    AssetExifV1 = "AssetExifV1",
+    PartnerAssetV1 = "PartnerAssetV1",
+    PartnerAssetDeleteV1 = "PartnerAssetDeleteV1",
+    PartnerAssetExifV1 = "PartnerAssetExifV1"
 }
 export enum SyncRequestType {
     UsersV1 = "UsersV1",
-    PartnersV1 = "PartnersV1"
+    PartnersV1 = "PartnersV1",
+    AssetsV1 = "AssetsV1",
+    AssetExifsV1 = "AssetExifsV1",
+    PartnerAssetsV1 = "PartnerAssetsV1",
+    PartnerAssetExifsV1 = "PartnerAssetExifsV1"
 }
 export enum TranscodeHWAccel {
     Nvenc = "nvenc",

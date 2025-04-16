@@ -1,8 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { AssetOrder } from 'src/enum';
 import { TimeBucketSize } from 'src/repositories/asset.repository';
 import { Optional, ValidateBoolean, ValidateUUID } from 'src/validation';
+import { IsEnum, IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { PaginationResult } from 'src/utils/pagination';
+import { hexOrBufferToBase64 } from 'src/dtos/asset-response.dto';
 
 export class TimeBucketDto {
   @IsNotEmpty()
@@ -42,10 +45,46 @@ export class TimeBucketDto {
   @ApiProperty({ enum: AssetOrder, enumName: 'AssetOrder' })
   order?: AssetOrder;
 }
+export class LiteTimeBucketDto extends TimeBucketDto {
+  @IsString()
+  timeBucket!: string;
 
+}
 export class TimeBucketAssetDto extends TimeBucketDto {
   @IsString()
   timeBucket!: string;
+}
+export class LiteTimeBucketAssetDto extends LiteTimeBucketDto {
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @Optional()
+  page?: number;
+}
+export class LiteTimeBucketAssetResponseDto {
+  @IsString()
+  id!: string;
+
+  @ApiProperty()
+  isFavorite!: boolean;
+
+  @ApiProperty()
+  isArchived!: boolean;
+
+  @ApiProperty()
+  isTrashed!: boolean;
+
+  @ApiProperty()
+  thumbhash?: string | null;
+
+  @ApiProperty()
+  localDateTime!: Date;
+
+  @ApiProperty({ type: 'integer' })
+  height!: number;
+
+  @ApiProperty({ type: 'integer' })
+  width!: number;
 }
 
 export class TimeBucketResponseDto {
@@ -55,3 +94,20 @@ export class TimeBucketResponseDto {
   @ApiProperty({ type: 'integer' })
   count!: number;
 }
+export interface LiteTimeBucketDto {
+  id: string;
+  isFavorite: boolean;
+  isArchived: boolean;
+  thumbhash: string;
+  localDateTime: Date;
+  height: number;
+  width: number;
+}
+export class LiteTimeBucketResponseDto {
+  @ApiProperty({ type: [LiteTimeBucketAssetResponseDto] })
+  liteAssets!: LiteTimeBucketAssetResponseDto[];
+
+  @ApiProperty()
+  hasNextPage!: boolean
+}
+

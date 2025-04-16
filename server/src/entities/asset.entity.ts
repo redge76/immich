@@ -1,4 +1,4 @@
-import { DeduplicateJoinsPlugin, ExpressionBuilder, Kysely, SelectQueryBuilder, sql } from 'kysely';
+import { DeduplicateJoinsPlugin, Expression, expressionBuilder, ExpressionBuilder, Kysely, SelectQueryBuilder, sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { DB } from 'src/db';
 import { AlbumEntity } from 'src/entities/album.entity';
@@ -31,6 +31,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { jsonBuildObject } from 'kysely/helpers/postgres'
 
 export const ASSET_CHECKSUM_CONSTRAINT = 'UQ_assets_owner_checksum';
 
@@ -191,7 +192,7 @@ export type AssetEntityPlaceholder = AssetEntity & {
 };
 
 export function withExif<O>(qb: SelectQueryBuilder<DB, 'assets', O>) {
-  return qb.leftJoin('exif', 'assets.id', 'exif.assetId').select((eb) => eb.fn.toJson(eb.table('exif')).as('exifInfo'));
+  return qb.leftJoin('exif', 'assets.id', 'exif.assetId').select(eb => eb.fn.toJson(eb.table('exif')).as('exifInfo'));
 }
 
 export function withExifInner<O>(qb: SelectQueryBuilder<DB, 'assets', O>) {
@@ -253,19 +254,17 @@ export function withFacesAndPeople(eb: ExpressionBuilder<DB, 'assets'>, withDele
     .as('faces');
 }
 
-export function hasPeople<O>(qb: SelectQueryBuilder<DB, 'assets', O>, personIds: string[]) {
-  return qb.innerJoin(
-    (eb) =>
-      eb
-        .selectFrom('asset_faces')
-        .select('assetId')
-        .where('personId', '=', anyUuid(personIds!))
-        .where('deletedAt', 'is', null)
-        .groupBy('assetId')
-        .having((eb) => eb.fn.count('personId').distinct(), '=', personIds.length)
-        .as('has_people'),
-    (join) => join.onRef('has_people.assetId', '=', 'assets.id'),
-  );
+export function hasPeople<O>(personIds: string[]) {
+  const eb = expressionBuilder<DB, never>();
+  return eb
+    .selectFrom('asset_faces')
+    .select('assetId')
+    .where('personId', '=', anyUuid(personIds!))
+    .where('deletedAt', 'is', null)
+    .groupBy('assetId')
+    .having((eb) => eb.fn.count('personId').distinct(), '=', personIds.length)
+    .as('has_people');
+
 }
 
 export function hasTags<O>(qb: SelectQueryBuilder<DB, 'assets', O>, tagIds: string[]) {
@@ -293,32 +292,55 @@ export function withLibrary(eb: ExpressionBuilder<DB, 'assets'>) {
   );
 }
 
-export function withAlbums<O>(qb: SelectQueryBuilder<DB, 'assets', O>, { albumId }: { albumId?: string }) {
-  return qb
-    .select((eb) =>
-      jsonArrayFrom(
-        eb
-          .selectFrom('albums')
-          .selectAll()
-          .innerJoin('albums_assets_assets', (join) =>
-            join
-              .onRef('albums.id', '=', 'albums_assets_assets.albumsId')
-              .onRef('assets.id', '=', 'albums_assets_assets.assetsId'),
-          )
-          .whereRef('albums.id', '=', 'albums_assets_assets.albumsId')
-          .$if(!!albumId, (qb) => qb.where('albums.id', '=', asUuid(albumId!))),
-      ).as('albums'),
-    )
-    .$if(!!albumId, (qb) =>
-      qb.where((eb) =>
-        eb.exists((eb) =>
-          eb
-            .selectFrom('albums_assets_assets')
-            .whereRef('albums_assets_assets.assetsId', '=', 'assets.id')
-            .where('albums_assets_assets.albumsId', '=', asUuid(albumId!)),
-        ),
-      ),
-    );
+export function withAlbums<O>(assetId: Expression<String>, albumId?: string) {
+  const eb = expressionBuilder<DB, never>();
+  return jsonArrayFrom(
+    eb
+      .selectFrom('albums')
+      .selectAll()
+      .innerJoin('albums_assets_assets', (join) =>
+        join
+          .onRef('albums.id', '=', 'albums_assets_assets.albumsId')
+          .onRef(assetId, '=', 'albums_assets_assets.assetsId'),
+      )
+      .whereRef('albums.id', '=', 'albums_assets_assets.albumsId')
+      .$if(!!albumId, (qb) => qb.where('albums.id', '=', asUuid(albumId!))),
+  ).as('albums');
+
+  // return qb
+  //   .select((eb) =>
+  //     jsonArrayFrom(
+  //       eb
+  //         .selectFrom('albums')
+
+  //         .innerJoin('albums_assets_assets', (join) =>
+  //           join
+  //             .onRef('albums.id', '=', 'albums_assets_assets.albumsId')
+  //             .onRef('assets.id', '=', 'albums_assets_assets.assetsId'),
+  //         )
+  //         .whereRef('albums.id', '=', 'albums_assets_assets.albumsId')
+  //         .$if(!!albumId, (qb) => qb.where('albums.id', '=', asUuid(albumId!))),
+  //     ).as('albums'),
+  //   )
+  //   .$if(!!albumId, (qb) =>
+  //     qb.where((eb) =>
+  //       eb.exists((eb) =>
+  //         eb
+  //           .selectFrom('albums_assets_assets')
+  //           .whereRef('albums_assets_assets.assetsId', '=', 'assets.id')
+  //           .where('albums_assets_assets.albumsId', '=', asUuid(albumId!)),
+  //       ),
+  //     ),
+  //   );
+}
+export function withAlbumsAssets(albumId: string, assetId: Expression<string>) {
+  const eb = expressionBuilder<DB, never>();
+  return eb.exists((eb) =>
+    eb
+      .selectFrom('albums_assets_assets')
+      .whereRef('albums_assets_assets.assetsId', '=', assetId)
+      .where('albums_assets_assets.albumsId', '=', asUuid(albumId!)),
+  );
 }
 
 export function withTags(eb: ExpressionBuilder<DB, 'assets'>) {
@@ -335,15 +357,14 @@ export function truncatedDate<O>(size: TimeBucketSize) {
   return sql<O>`date_trunc(${size}, "localDateTime" at time zone 'UTC') at time zone 'UTC'`;
 }
 
-export function withTagId<O>(qb: SelectQueryBuilder<DB, 'assets', O>, tagId: string) {
-  return qb.where((eb) =>
-    eb.exists(
-      eb
-        .selectFrom('tags_closure')
-        .innerJoin('tag_asset', 'tag_asset.tagsId', 'tags_closure.id_descendant')
-        .whereRef('tag_asset.assetsId', '=', 'assets.id')
-        .where('tags_closure.id_ancestor', '=', tagId),
-    ),
+export function withTagId(tagId: string, assetId: Expression<string>) {
+  const eb = expressionBuilder<DB, never>();
+  return eb.exists(
+    eb
+      .selectFrom('tags_closure')
+      .innerJoin('tag_asset', 'tag_asset.tagsId', 'tags_closure.id_descendant')
+      .whereRef('tag_asset.assetsId', '=', assetId)
+      .where('tags_closure.id_ancestor', '=', tagId),
   );
 }
 
@@ -358,7 +379,7 @@ export function searchAssetBuilder(kysely: Kysely<DB>, options: AssetSearchBuild
     .selectFrom('assets')
     .selectAll('assets')
     .$if(!!options.tagIds && options.tagIds.length > 0, (qb) => hasTags(qb, options.tagIds!))
-    .$if(!!options.personIds && options.personIds.length > 0, (qb) => hasPeople(qb, options.personIds!))
+    .$if(!!options.personIds && options.personIds.length > 0, (qb) => qb.innerJoin(() => hasPeople(options.personIds!), (join) => join.onRef('has_people.assetId', '=', 'assets.id')))
     .$if(!!options.createdBefore, (qb) => qb.where('assets.createdAt', '<=', options.createdBefore!))
     .$if(!!options.createdAfter, (qb) => qb.where('assets.createdAt', '>=', options.createdAfter!))
     .$if(!!options.updatedBefore, (qb) => qb.where('assets.updatedAt', '<=', options.updatedBefore!))

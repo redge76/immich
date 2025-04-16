@@ -360,6 +360,10 @@ class ApiClient {
           return LicenseKeyDto.fromJson(value);
         case 'LicenseResponseDto':
           return LicenseResponseDto.fromJson(value);
+        case 'LiteTimeBucketAssetResponseDto':
+          return LiteTimeBucketAssetResponseDto.fromJson(value);
+        case 'LiteTimeBucketResponseDto':
+          return LiteTimeBucketResponseDto.fromJson(value);
         case 'LogLevel':
           return LogLevelTypeTransformer().decode(value);
         case 'LoginCredentialDto':
@@ -518,6 +522,12 @@ class ApiClient {
           return SyncAckDto.fromJson(value);
         case 'SyncAckSetDto':
           return SyncAckSetDto.fromJson(value);
+        case 'SyncAssetDeleteV1':
+          return SyncAssetDeleteV1.fromJson(value);
+        case 'SyncAssetExifV1':
+          return SyncAssetExifV1.fromJson(value);
+        case 'SyncAssetV1':
+          return SyncAssetV1.fromJson(value);
         case 'SyncEntityType':
           return SyncEntityTypeTypeTransformer().decode(value);
         case 'SyncPartnerDeleteV1':

@@ -331,10 +331,7 @@ class GalleryViewerPage extends HookConsumerWidget {
               pageController: controller,
               scrollPhysics: isZoomed.value
                   ? const NeverScrollableScrollPhysics() // Don't allow paging while scrolled in
-                  : (Platform.isIOS
-                      ? const FastScrollPhysics() // Use bouncing physics for iOS
-                      : const FastClampingScrollPhysics() // Use heavy physics for Android
-                  ),
+                  : const ClampingScrollPhysics(),
               itemCount: totalAssets.value,
               scrollDirection: Axis.horizontal,
               onPageChanged: (value) {

@@ -162,11 +162,11 @@
       style:height={dateGroup.height + 'px'}
       style:width={dateGroup.width + 'px'}
     >
-      {#each filterIntersecting(dateGroup.intersectingAssets) as intersectingAsset (intersectingAsset.id)}
-        {@const position = intersectingAsset.position!}
-        {@const asset = intersectingAsset.asset!}
+      {#each filterIntersecting(dateGroup.intersectingAssets) as viewportAsset (viewportAsset.id)}
+        {@const position = viewportAsset.position!}
+        {@const asset = viewportAsset.asset!}
 
-        <!-- {#if intersectingAsset.intersecting} -->
+        <!-- {#if viewportAsset.intersecting} -->
         <!-- note: don't remove data-asset-id - its used by web e2e tests -->
         <div
           data-asset-id={asset.id}

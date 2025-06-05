@@ -16,7 +16,7 @@ import { get } from 'svelte/store';
 import { AddContext } from './add-context.svelte';
 import { AssetDateGroup } from './asset-date-group.svelte';
 import type { AssetStore } from './asset-store.svelte';
-import { IntersectingAsset } from './intersecting-asset.svelte';
+import { ViewportAsset } from './viewport-asset.svelte';
 import type { AssetDescriptor, AssetOperation, Direction, MoveAsset, TimelineAsset } from './types';
 
 export class AssetBucket {
@@ -216,7 +216,7 @@ export class AssetBucket {
       addContext.newDateGroups.add(dateGroup);
     }
 
-    const intersectingAsset = new IntersectingAsset(dateGroup, timelineAsset);
+    const intersectingAsset = new ViewportAsset(dateGroup, timelineAsset);
     dateGroup.intersectingAssets.push(intersectingAsset);
     addContext.changedDateGroups.add(dateGroup);
   }
@@ -293,7 +293,7 @@ export class AssetBucket {
 
   findDateGroupForAsset(asset: TimelineAsset) {
     for (const group of this.dateGroups) {
-      if (group.intersectingAssets.some((IntersectingAsset) => IntersectingAsset.id === asset.id)) {
+      if (group.intersectingAssets.some((ViewportAsset) => ViewportAsset.id === asset.id)) {
         return group;
       }
     }

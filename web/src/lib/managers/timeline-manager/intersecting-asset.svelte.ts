@@ -7,9 +7,12 @@ const {
   TIMELINE: { INTERSECTION_EXPAND_TOP, INTERSECTION_EXPAND_BOTTOM },
 } = TUNABLES;
 
-export class IntersectingAsset {
+export class ViewportAsset {
+  readonly asset: TimelineAsset;
+  readonly id: string;
   readonly #group: AssetDateGroup;
 
+  position: CommonPosition | undefined = $state();
   intersecting = $derived.by(() => {
     if (!this.position) {
       return false;
@@ -34,12 +37,9 @@ export class IntersectingAsset {
     return intersecting;
   });
 
-  position: CommonPosition | undefined = $state();
-  asset: TimelineAsset = <TimelineAsset>$state();
-  id: string | undefined = $derived(this.asset?.id);
-
   constructor(group: AssetDateGroup, asset: TimelineAsset) {
     this.#group = group;
     this.asset = asset;
+    this.id = asset.id;
   }
 }

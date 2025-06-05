@@ -3,7 +3,7 @@ import { getJustifiedLayoutFromAssets, getPosition } from '$lib/utils/layout-uti
 import { plainDateTimeCompare } from '$lib/utils/timeline-util';
 import { AssetOrder } from '@immich/sdk';
 import type { AssetBucket } from './asset-bucket.svelte';
-import { IntersectingAsset } from './intersecting-asset.svelte';
+import { ViewportAsset } from './viewport-asset.svelte';
 import type { AssetOperation, Direction, MoveAsset, TimelineAsset } from './types';
 
 export class AssetDateGroup {
@@ -11,7 +11,7 @@ export class AssetDateGroup {
   readonly index: number;
   readonly groupTitle: string;
   readonly day: number;
-  intersectingAssets: IntersectingAsset[] = $state([]);
+  intersectingAssets: ViewportAsset[] = $state([]);
 
   height = $state(0);
   width = $state(0);
@@ -87,20 +87,20 @@ export class AssetDateGroup {
   *assetsIterator(options: { startAsset?: TimelineAsset; direction?: Direction } = {}) {
     const isEarlier = (options?.direction ?? 'earlier') === 'earlier';
     let assetIndex = options?.startAsset
-      ? this.intersectingAssets.findIndex((intersectingAsset) => intersectingAsset.asset.id === options.startAsset!.id)
+      ? this.intersectingAssets.findIndex((viewportAsset) => viewportAsset.asset.id === options.startAsset!.id)
       : isEarlier
         ? 0
         : this.intersectingAssets.length - 1;
 
     while (assetIndex >= 0 && assetIndex < this.intersectingAssets.length) {
-      const intersectingAsset = this.intersectingAssets[assetIndex];
-      yield intersectingAsset.asset;
+      const viewportAsset = this.intersectingAssets[assetIndex];
+      yield viewportAsset.asset;
       assetIndex += isEarlier ? 1 : -1;
     }
   }
 
   getAssets() {
-    return this.intersectingAssets.map((intersectingasset) => intersectingasset.asset);
+    return this.intersectingAssets.map((viewportAsset) => viewportAsset.asset);
   }
 
   runAssetOperation(ids: Set<string>, operation: AssetOperation) {
@@ -146,7 +146,7 @@ export class AssetDateGroup {
       this.#deferredLayout = true;
       return;
     }
-    const assets = this.intersectingAssets.map((intersetingAsset) => intersetingAsset.asset!);
+    const assets = this.intersectingAssets.map((viewportAsset) => viewportAsset.asset!);
     const geometry = getJustifiedLayoutFromAssets(assets, options);
     this.width = geometry.containerWidth;
     this.height = assets.length === 0 ? 0 : geometry.containerHeight;

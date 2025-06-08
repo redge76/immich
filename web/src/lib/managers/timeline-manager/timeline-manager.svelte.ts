@@ -1,4 +1,4 @@
-import { AssetOrder, getAssetInfo, getTimeBuckets } from '@immich/sdk';
+import { AssetOrder, getAllAlbums, getAssetInfo, getTimeBuckets } from '@immich/sdk';
 
 import { authManager } from '$lib/managers/auth-manager.svelte';
 
@@ -59,7 +59,7 @@ export class TimelineManager {
   initTask = new CancellableTask(
     () => {
       this.isInitialized = true;
-      if (this.#options.albumId || this.#options.personId) {
+      if (this.#options.personId) {
         return;
       }
       this.connect();
@@ -409,11 +409,14 @@ export class TimelineManager {
     }
   }
 
-  addAssets(assets: TimelineAsset[]) {
+  async addAssets(assets: TimelineAsset[], { checkAlbum = true }: { checkAlbum?: boolean } = {}) {
     const assetsToUpdate: TimelineAsset[] = [];
 
     for (const asset of assets) {
       if (this.isExcluded(asset)) {
+        continue;
+      }
+      if (checkAlbum && !(await this.isPartOfTimelineAlbum(asset))) {
         continue;
       }
       assetsToUpdate.push(asset);
@@ -538,10 +541,23 @@ export class TimelineManager {
   }
 
   isExcluded(asset: TimelineAsset) {
-    return (
+    const excluded =
       isMismatched(this.#options.visibility, asset.visibility) ||
       isMismatched(this.#options.isFavorite, asset.isFavorite) ||
-      isMismatched(this.#options.isTrashed, asset.isTrashed)
-    );
+      isMismatched(this.#options.isTrashed, asset.isTrashed);
+    if (excluded) {
+      return true;
+    }
+  }
+
+  async isPartOfTimelineAlbum(asset: TimelineAsset) {
+    if (this.#options.albumId) {
+      const albums = await getAllAlbums({ assetId: asset.id });
+      if (albums.some((album) => album.id === this.#options.albumId)) {
+        return true;
+      }
+      return false;
+    }
+    return true;
   }
 }

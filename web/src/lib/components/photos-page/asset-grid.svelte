@@ -386,7 +386,7 @@
       !(isTrashEnabled && !force),
       (assetIds) => timelineManager.removeAssets(assetIds),
       assetInteraction.selectedAssets,
-      !isTrashEnabled || force ? undefined : (assets) => timelineManager.addAssets(assets),
+      !isTrashEnabled || force ? undefined : (assets) => void timelineManager.addAssets(assets),
     );
     assetInteraction.clearMultiselect();
   };

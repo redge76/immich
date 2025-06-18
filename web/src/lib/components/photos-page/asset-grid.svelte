@@ -3,17 +3,16 @@
   import { page } from '$app/stores';
   import { resizeObserver, type OnResizeCallback } from '$lib/actions/resize-observer';
   import { shortcuts, type ShortcutOptions } from '$lib/actions/shortcut';
-  import type { Action } from '$lib/components/asset-viewer/actions/action';
   import {
     setFocusToAsset as setFocusAssetInit,
     setFocusTo as setFocusToInit,
   } from '$lib/components/photos-page/actions/focus-actions';
+  import AssetViewerAndActions from '$lib/components/photos-page/asset-viewer-and-actions.svelte';
   import Skeleton from '$lib/components/photos-page/skeleton.svelte';
   import ChangeDate from '$lib/components/shared-components/change-date.svelte';
   import Scrubber from '$lib/components/shared-components/scrubber/scrubber.svelte';
   import { AppRoute, AssetAction } from '$lib/constants';
   import { albumMapViewManager } from '$lib/managers/album-view-map.manager.svelte';
-  import { authManager } from '$lib/managers/auth-manager.svelte';
   import { modalManager } from '$lib/managers/modal-manager.svelte';
   import type { MonthGroup } from '$lib/managers/timeline-manager/month-group.svelte';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
@@ -28,11 +27,11 @@
   import { searchStore } from '$lib/stores/search.svelte';
   import { featureFlags } from '$lib/stores/server-config.store';
   import { handlePromiseError } from '$lib/utils';
-  import { deleteAssets, updateStackedAssetInTimeline, updateUnstackedAssetInTimeline } from '$lib/utils/actions';
+  import { deleteAssets, updateStackedAssetInTimeline } from '$lib/utils/actions';
   import { archiveAssets, cancelMultiselect, selectAllAssets, stackAssets } from '$lib/utils/asset-utils';
   import { navigate } from '$lib/utils/navigation';
-  import { toTimelineAsset, type ScrubberListener, type TimelinePlainYearMonth } from '$lib/utils/timeline-util';
-  import { AssetVisibility, getAssetInfo, type AlbumResponseDto, type PersonResponseDto } from '@immich/sdk';
+  import { type ScrubberListener, type TimelinePlainYearMonth } from '$lib/utils/timeline-util';
+  import { AssetVisibility, type AlbumResponseDto, type PersonResponseDto } from '@immich/sdk';
   import { DateTime } from 'luxon';
   import { onMount, type Snippet } from 'svelte';
   import type { UpdatePayload } from 'vite';
@@ -54,8 +53,7 @@
       | AssetAction.ARCHIVE
       | AssetAction.FAVORITE
       | AssetAction.UNFAVORITE
-      | AssetAction.SET_VISIBILITY_TIMELINE
-      | null;
+      | AssetAction.SET_VISIBILITY_TIMELINE;
     withStacked?: boolean;
     showArchiveIcon?: boolean;
     isShared?: boolean;
@@ -74,7 +72,7 @@
     enableRouting,
     timelineManager = $bindable(),
     assetInteraction,
-    removeAction = null,
+    removeAction,
     withStacked = false,
     showArchiveIcon = false,
     isShared = false,
@@ -87,7 +85,7 @@
     empty,
   }: Props = $props();
 
-  let { isViewing: showAssetViewer, asset: viewingAsset, preloadAssets, gridScrollTarget } = assetViewingStore;
+  let { isViewing: showAssetViewer, gridScrollTarget } = assetViewingStore;
 
   let element: HTMLElement | undefined = $state();
 
@@ -433,104 +431,6 @@
     }
   };
 
-  const handlePrevious = async () => {
-    const laterAsset = await timelineManager.getLaterAsset($viewingAsset);
-
-    if (laterAsset) {
-      const preloadAsset = await timelineManager.getLaterAsset(laterAsset);
-      const asset = await getAssetInfo({ id: laterAsset.id, key: authManager.key });
-      assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
-      await navigate({ targetRoute: 'current', assetId: laterAsset.id });
-    }
-
-    return !!laterAsset;
-  };
-
-  const handleNext = async () => {
-    const earlierAsset = await timelineManager.getEarlierAsset($viewingAsset);
-    if (earlierAsset) {
-      const preloadAsset = await timelineManager.getEarlierAsset(earlierAsset);
-      const asset = await getAssetInfo({ id: earlierAsset.id, key: authManager.key });
-      assetViewingStore.setAsset(asset, preloadAsset ? [preloadAsset] : []);
-      await navigate({ targetRoute: 'current', assetId: earlierAsset.id });
-    }
-
-    return !!earlierAsset;
-  };
-
-  const handleRandom = async () => {
-    const randomAsset = await timelineManager.getRandomAsset();
-
-    if (randomAsset) {
-      const asset = await getAssetInfo({ id: randomAsset.id, key: authManager.key });
-      assetViewingStore.setAsset(asset);
-      await navigate({ targetRoute: 'current', assetId: randomAsset.id });
-      return asset;
-    }
-  };
-
-  const handleClose = async (asset: { id: string }) => {
-    assetViewingStore.showAssetViewer(false);
-    showSkeleton = true;
-    $gridScrollTarget = { at: asset.id };
-    await navigate({ targetRoute: 'current', assetId: null, assetGridRouteSearchParams: $gridScrollTarget });
-  };
-
-  const handlePreAction = async (action: Action) => {
-    switch (action.type) {
-      case removeAction:
-      case AssetAction.TRASH:
-      case AssetAction.RESTORE:
-      case AssetAction.DELETE:
-      case AssetAction.ARCHIVE:
-      case AssetAction.SET_VISIBILITY_LOCKED:
-      case AssetAction.SET_VISIBILITY_TIMELINE: {
-        // find the next asset to show or close the viewer
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        (await handleNext()) || (await handlePrevious()) || (await handleClose(action.asset));
-
-        // delete after find the next one
-        timelineManager.removeAssets([action.asset.id]);
-        break;
-      }
-    }
-  };
-  const handleAction = (action: Action) => {
-    switch (action.type) {
-      case AssetAction.ARCHIVE:
-      case AssetAction.UNARCHIVE:
-      case AssetAction.FAVORITE:
-      case AssetAction.UNFAVORITE: {
-        timelineManager.updateAssets([action.asset]);
-        break;
-      }
-
-      case AssetAction.ADD: {
-        timelineManager.addAssets([action.asset]);
-        break;
-      }
-
-      case AssetAction.UNSTACK: {
-        updateUnstackedAssetInTimeline(timelineManager, action.assets);
-        break;
-      }
-      case AssetAction.SET_STACK_PRIMARY_ASSET: {
-        //Have to unstack then restack assets in timeline in order for the currently removed new primary asset to be made visible.
-        updateUnstackedAssetInTimeline(
-          timelineManager,
-          action.stack.assets.map((asset) => toTimelineAsset(asset)),
-        );
-        updateStackedAssetInTimeline(timelineManager, {
-          stack: action.stack,
-          toDeleteIds: action.stack.assets
-            .filter((asset) => asset.id !== action.stack.primaryAssetId)
-            .map((asset) => asset.id),
-        });
-        break;
-      }
-    }
-  };
-
   let lastAssetMouseEvent: TimelineAsset | null = $state(null);
 
   let shiftKeyIsDown = $state(false);
@@ -703,7 +603,7 @@
     }
 
     isShortcutModalOpen = true;
-    await modalManager.show(ShortcutsModal);
+    await modalManager.show(ShortcutsModal, {});
     isShortcutModalOpen = false;
   };
 
@@ -914,22 +814,16 @@
 {#if !albumMapViewManager.isInMapView}
   <Portal target="body">
     {#if $showAssetViewer}
-      {#await import('../asset-viewer/asset-viewer.svelte') then { default: AssetViewer }}
-        <AssetViewer
-          {withStacked}
-          asset={$viewingAsset}
-          preloadAssets={$preloadAssets}
-          {isShared}
-          {album}
-          {person}
-          preAction={handlePreAction}
-          onAction={handleAction}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-          onRandom={handleRandom}
-          onClose={handleClose}
-        />
-      {/await}
+      <AssetViewerAndActions
+        bind:showSkeleton
+        {timelineManager}
+        {removeAction}
+        {withStacked}
+        {isShared}
+        {album}
+        {person}
+        {isShowDeleteConfirmation}
+      ></AssetViewerAndActions>
     {/if}
   </Portal>
 {/if}

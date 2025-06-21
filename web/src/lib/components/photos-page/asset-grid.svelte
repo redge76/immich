@@ -8,7 +8,6 @@
   import Skeleton from '$lib/components/photos-page/skeleton.svelte';
   import Scrubber from '$lib/components/shared-components/scrubber/scrubber.svelte';
   import { AssetAction } from '$lib/constants';
-  import { albumMapViewManager } from '$lib/managers/album-view-map.manager.svelte';
   import type { MonthGroup } from '$lib/managers/timeline-manager/month-group.svelte';
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
@@ -477,22 +476,20 @@
   </section>
 </section>
 
-{#if !albumMapViewManager.isInMapView}
-  <Portal target="body">
-    {#if $showAssetViewer}
-      <AssetViewerAndActions
-        bind:showSkeleton
-        {timelineManager}
-        {removeAction}
-        {withStacked}
-        {isShared}
-        {album}
-        {person}
-        {isShowDeleteConfirmation}
-      ></AssetViewerAndActions>
-    {/if}
-  </Portal>
-{/if}
+<Portal target="body">
+  {#if $showAssetViewer}
+    <AssetViewerAndActions
+      bind:showSkeleton
+      {timelineManager}
+      {removeAction}
+      {withStacked}
+      {isShared}
+      {album}
+      {person}
+      {isShowDeleteConfirmation}
+    ></AssetViewerAndActions>
+  {/if}
+</Portal>
 
 <style>
   #asset-grid {

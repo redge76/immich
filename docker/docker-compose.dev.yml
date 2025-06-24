@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     volumes:
       - ../server:/usr/src/app
-      - ../open-api:/usr/src/open-api
+      - ../open-api/:/usr/src/open-api
       - ${UPLOAD_LOCATION}/photos:/usr/src/app/upload
       - ${UPLOAD_LOCATION}/photos/upload:/usr/src/app/upload/upload
       - /usr/src/app/node_modules
@@ -69,7 +69,8 @@ services:
     # Needed for rootless docker setup, see https://github.com/moby/moby/issues/45919
     # user: 0:0
     build:
-      context: ../web
+      context: ../
+      dockerfile: web/Dockerfile
     command: ['/usr/src/app/bin/immich-web']
     env_file:
       - .env
@@ -79,7 +80,7 @@ services:
     volumes:
       - ../web:/usr/src/app
       - ../i18n:/usr/src/i18n
-      - ../open-api/:/usr/src/open-api/
+      - ../open-api/:/usr/src/open-api
       # - ../../ui:/usr/ui
       - /usr/src/app/node_modules
     ulimits:

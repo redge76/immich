@@ -1,0 +1,9 @@
+{
+  "name": "immich-workspace",
+  "version": "1.135.3",
+  "private": true,
+  "description": "Immich workspace root",
+  "devDependencies": {
+    "pnpm": "^10.12.1"
+  }
+}

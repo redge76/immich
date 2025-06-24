@@ -11,7 +11,7 @@ cd "${IMMICH_WORKSPACE}/server" || (
 )
 
 while true; do
-    run_cmd node ./node_modules/.bin/nest start --debug "0.0.0.0:9230" --watch
+    run_cmd npx nest start --debug "0.0.0.0:9230" --watch
     log "Nest API Server crashed with exit code $?.  Respawning in 3s ..."
     sleep 3
 done

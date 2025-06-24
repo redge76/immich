@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 
-TYPESCRIPT_SDK=/usr/src/open-api/typescript-sdk
+TYPESCRIPT_SDK=@immich/sdk
 
-npm --prefix "$TYPESCRIPT_SDK" install
-npm --prefix "$TYPESCRIPT_SDK" run build
-
+echo "Building TypeScript SDK..."
+(cd ../open-api/typescript-sdk && pnpm run build)
+echo "Installing Deps ..."
+pnpm install
 
 COUNT=0
 UPSTREAM="${IMMICH_SERVER_URL:-http://immich-server:2283/}"
@@ -18,4 +19,4 @@ done
 
 echo "Connected to $UPSTREAM"
 
-node ./node_modules/.bin/vite dev --host 0.0.0.0 --port 3000
+pnpm exec vite dev --host 0.0.0.0 --port 3000

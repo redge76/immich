@@ -58,14 +58,14 @@ jobs:
         with:
           node-version-file: './docs/.nvmrc'
 
-      - name: Run npm install
-        run: npm ci
+      - name: Run install
+        run: pnpm install
 
       - name: Check formatting
-        run: npm run format
+        run: pnpm run format
 
       - name: Run build
-        run: npm run build
+        run: pnpm run build
 
       - name: Upload build output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

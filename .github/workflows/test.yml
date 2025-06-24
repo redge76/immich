@@ -85,23 +85,23 @@ jobs:
         with:
           node-version-file: './server/.nvmrc'
 
-      - name: Run npm install
-        run: npm ci
+      - name: Run package manager install
+        run: pnpm install
 
       - name: Run linter
-        run: npm run lint
+        run: pnpm run lint
         if: ${{ !cancelled() }}
 
       - name: Run formatter
-        run: npm run format
+        run: pnpm run format
         if: ${{ !cancelled() }}
 
       - name: Run tsc
-        run: npm run check
+        run: pnpm run check
         if: ${{ !cancelled() }}
 
       - name: Run small tests & coverage
-        run: npm test
+        run: pnpm test
         if: ${{ !cancelled() }}
 
   cli-unit-tests:
@@ -127,11 +127,11 @@ jobs:
           node-version-file: './cli/.nvmrc'
 
       - name: Setup typescript-sdk
-        run: npm ci && npm run build
+        run: pnpm install && pnpm run build
         working-directory: ./open-api/typescript-sdk
 
       - name: Install deps
-        run: npm ci
+        run: pnpm install
 
       - name: Run linter
         run: npm run lint

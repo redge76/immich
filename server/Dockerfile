@@ -1,11 +1,15 @@
 # dev build
 FROM ghcr.io/immich-app/base-server-dev:202505131114@sha256:cf4507bbbf307e9b6d8ee9418993321f2b85867da8ce14d0a20ccaf9574cb995 AS dev
 
-RUN apt-get install --no-install-recommends -yqq tini
+ENV COREPACK_ENABLE_AUTO_PIN=0
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack install -g pnpm && apt-get install --no-install-recommends -yqq tini
+RUN mkdir -p /pnpm/store && chmod 777 /pnpm/store && mkdir -p /usr/local/etc && echo "store-dir=/pnpm/store" >> /usr/local/etc/npmrc
+
 WORKDIR /usr/src/app
-COPY server/package.json server/package-lock.json ./
+COPY server/package.json server/pnpm-lock.yaml server/pnpm-workspace.yaml ./
 COPY server/patches ./patches
-RUN npm ci && \
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install && \
     # exiftool-vendored.pl, sharp-linux-x64 and sharp-linux-arm64 are the only ones we need
     # they're marked as optional dependencies, so we need to copy them manually after pruning
     rm -rf node_modules/@img/sharp-libvips* && \
@@ -69,11 +73,17 @@ COPY --chmod=777 ../.devcontainer/mobile/container-mobile-post-create.sh /immich
 
 RUN dart --disable-analytics
 
+COPY . /tmp/immich
+WORKDIR /tmp/immich
+RUN make install-sdk build-sdk install-cli install-e2e install-web install-server
+WORKDIR /usr/src/app
+RUN rm -rf /tmp/immich
+
 FROM dev AS prod
 
 COPY server .
-RUN npm run build
-RUN npm prune --omit=dev --omit=optional
+RUN pnpm run build
+RUN pnpm prune --prod --no-optional
 COPY --from=dev /usr/src/app/node_modules/@img ./node_modules/@img
 COPY --from=dev /usr/src/app/node_modules/exiftool-vendored.pl ./node_modules/exiftool-vendored.pl
 
@@ -82,16 +92,16 @@ FROM node:22.16.0-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679
 
 WORKDIR /usr/src/open-api/typescript-sdk
 COPY open-api/typescript-sdk/package*.json open-api/typescript-sdk/tsconfig*.json ./
-RUN npm ci
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY open-api/typescript-sdk/ ./
-RUN npm run build
+RUN pnpm run build
 
 WORKDIR /usr/src/app
 COPY web/package*.json web/svelte.config.js ./
-RUN npm ci
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY web ./
 COPY i18n ../i18n
-RUN npm run build
+RUN pnpm run build
 
 
 # prod build
@@ -109,7 +119,7 @@ COPY server/resources resources
 COPY server/package.json server/package-lock.json ./
 COPY server/start*.sh ./
 COPY "docker/scripts/get-cpus.sh" ./
-RUN npm install -g @immich/cli && npm cache clean --force
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install -g @immich/cli
 COPY LICENSE /licenses/LICENSE.txt
 COPY LICENSE /LICENSE
 ENV PATH="${PATH}:/usr/src/app/bin"

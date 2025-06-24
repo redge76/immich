@@ -1,0 +1,20 @@
+packages:
+  - cli
+  - docs
+  - e2e
+  - open-api/typescript-sdk
+  - server
+  - web
+
+ignoredBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - es5-ext
+  - esbuild
+
+onlyBuiltDependencies:
+  - canvas
+  - sharp
+
+sharedWorkspaceLockfile: false
+shamefullyHoist: true
+dedupePeerDependents: false

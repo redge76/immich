@@ -23,7 +23,7 @@
     "test": "vitest --run",
     "test:cov": "vitest --coverage",
     "test:watch": "vitest dev",
-    "prepare": "svelte-kit sync"
+    "prepare": "node -e \"try { require.resolve('@sveltejs/kit/package.json'); } catch(e) { process.exit(1); }\" && svelte-kit sync || echo 'Skipping svelte-kit sync (devDependency not available)'"
   },
   "dependencies": {
     "@formatjs/icu-messageformat-parser": "^2.9.8",

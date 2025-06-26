@@ -92,23 +92,23 @@ test-medium-dev:
 	docker exec -it immich_server /bin/sh -c "pnpm run test:medium"
 
 install-all: 
-	pnpm install
+	pnpm -r --filter '!documentation' install
 	
 build-all: $(foreach M,$(filter-out e2e docs .github,$(MODULES)),build-$M) ;
 
 check-all: 
-	pnpm -r --filter '!docs' run "/^(check|check\:svelte|check\:typescript)$/" 
+	pnpm -r --filter '!documentation' run "/^(check|check\:svelte|check\:typescript)$/" 
 lint-all: 
-	pnpm -r --filter '!docs' run lint:fix
+	pnpm -r --filter '!documentation' run lint:fix
 format-all:
-	pnpm -r --filter '!docs' run format:fix
+	pnpm -r --filter '!documentation' run format:fix
 audit-all:  
-	pnpm -r --filter '!docs' audit fix
+	pnpm -r --filter '!documentation' audit fix
 hygiene-all: audit-all 
-	pnpm -r --filter '!docs' run "/(format:fix|check|check:svelte|check:typescript|sql)/" 
+	pnpm -r --filter '!documentation' run "/(format:fix|check|check:svelte|check:typescript|sql)/" 
 
 test-all: 
-	pnpm -r --filter '!docs' run "/^test/"
+	pnpm -r --filter '!documentation' run "/^test/"
 
 prune:
 	pnpm store prune

@@ -4,6 +4,7 @@
 
 design/
 docker/
+Dockerfile
 !docker/scripts
 docs/
 e2e/

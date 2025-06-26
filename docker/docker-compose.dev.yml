@@ -24,7 +24,7 @@ services:
     build:
       context: ../
       dockerfile: server/Dockerfile
-      target: dev
+      target: dev-docker
     restart: unless-stopped
     volumes:
       - ../server:/usr/src/app

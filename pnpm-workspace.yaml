@@ -18,3 +18,4 @@ onlyBuiltDependencies:
 sharedWorkspaceLockfile: false
 shamefullyHoist: true
 dedupePeerDependents: false
+preferWorkspacePackages: true

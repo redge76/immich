@@ -1,7 +1,5 @@
 #!/usr/bin/env sh
 
-TYPESCRIPT_SDK=@immich/sdk
-
 echo "Building TypeScript SDK..."
 (cd ../open-api/typescript-sdk && pnpm install && pnpm build)
 echo "Installing Deps ..."

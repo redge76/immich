@@ -306,7 +306,7 @@ importers:
         specifier: ^1.4.7
         version: 1.4.13
       '@types/node':
-        specifier: ^22.15.31
+        specifier: ^22.15.32
         version: 22.15.32
       '@types/nodemailer':
         specifier: ^6.4.14

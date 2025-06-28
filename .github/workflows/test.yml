@@ -89,15 +89,15 @@ jobs:
         run: pnpm install
 
       - name: Run linter
-        run: pnpm run lint
+        run: pnpm lint
         if: ${{ !cancelled() }}
 
       - name: Run formatter
-        run: pnpm run format
+        run: pnpm format
         if: ${{ !cancelled() }}
 
       - name: Run tsc
-        run: pnpm run check
+        run: pnpm check
         if: ${{ !cancelled() }}
 
       - name: Run small tests & coverage

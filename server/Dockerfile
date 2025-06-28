@@ -23,27 +23,35 @@ RUN rm -rf /usr/src/app && \
     chown node:node /usr/src/app 
 
 USER node
+
 WORKDIR /usr/src/app
-COPY --chown=node:node server/package.json server/pnpm-lock.yaml server/pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 pnpm fetch 
+COPY --chown=node:node \
+    server/package.json \
+    server/pnpm-lock.yaml \
+    pnpm-workspace.yaml \
+    ./
+RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
+    pnpm fetch 
 
 ENTRYPOINT ["tini", "--", "/bin/sh"]
 
 FROM dev AS dev-docker
+
 WORKDIR /usr/src/app
+VOLUME /usr/src/app/node_modules
 # Run this without build-cache, so these are cached in image itself
 # This will also build node-gyp binaries, like sharp/canvas
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 pnpm install --offline
+RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
+    pnpm install --frozen-lockfile --offline
 
 FROM dev AS dev-container-server
 
 USER root
+# Remove app dir from dev container
 RUN rm -rf /usr/src/app
 
 RUN apt-get update && \
     apt-get install sudo inetutils-ping openjdk-11-jre-headless \
-    # these are build-dependencies for 'canvas' used by web testing libs
-    pango1.0 \
     vim nano -y --no-install-recommends --fix-missing
 
 RUN usermod -aG sudo node && \
@@ -56,20 +64,37 @@ RUN sudo mkdir -p /workspaces/immich && \
     sudo mkdir /immich-devcontainer && \
     sudo chown node -R /immich-devcontainer
 
-COPY --chmod=777 ../.devcontainer/server/*.sh /immich-devcontainer/
+COPY --chmod=777 \
+    ../.devcontainer/server/*.sh \
+    /immich-devcontainer/
 
-COPY --chown=node:node package.json pnpm-lock.yaml* pnpm-workspace.yaml* /tmp/build/
+WORKDIR /tmp/build
+COPY --chown=node:node \
+    package.json \
+    pnpm-lock.yaml \
+    ./
 # note: e2e is part of dockerignore, so it is not copied here
-COPY --chown=node:node web/package.json web/pnpm-lock.yaml* web/pnpm-workspace.yaml* /tmp/build/web/
-COPY --chown=node:node cli/package.json cli/pnpm-lock.yaml* cli/pnpm-workspace.yaml* /tmp/build/cli/
-COPY --chown=node:node server/package.json server/pnpm-lock.yaml* server/pnpm-workspace.yaml* /tmp/build/server/
+COPY --chown=node:node \
+    web/package.json \
+    web/pnpm-lock.yaml \
+    ./web/
+COPY --chown=node:node \
+    cli/package.json \
+    cli/pnpm-lock.yaml \
+    ./cli/
+COPY --chown=node:node \
+    server/package.json \
+    server/pnpm-lock.yaml \
+    ./server/
 # note: docs is part of dockerignore, so it is not copied here
-COPY --chown=node:node open-api/typescript-sdk/package.json open-api/typescript-sdk/pnpm-lock.yaml* open-api/typescript-sdk/pnpm-workspace.yaml* /tmp/build/open-api/typescript-sdk/
+COPY --chown=node:node open-api/typescript-sdk/package.json \
+    open-api/typescript-sdk/pnpm-lock.yaml \
+    ./open-api/typescript-sdk/
 
-# # This will cache all dependencies
-RUN cd /tmp/build && \
-    pnpm fetch && \
-    rm -rf /tmp/build
+# This will cache all dependencies
+RUN pnpm store prune && pnpm fetch 
+WORKDIR /workspaces/immich
+RUN rm -rf /tmp/build
 
 FROM dev-container-server AS dev-container-mobile
 
@@ -107,56 +132,42 @@ COPY --chmod=777 ../.devcontainer/mobile/container-mobile-post-create.sh /immich
 RUN dart --disable-analytics
 
 # server production build
-FROM dev-container-server AS prod
+FROM dev AS prod
 
 USER root
 RUN chown node:node /usr/src/app
 USER node
-COPY server .
+COPY --chown=node:node server .
 RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
     pnpm install --frozen-lockfile --offline && \
-    pnpm build && pnpm prune --prod --no-optional
-# && \
-#     cp -R /usr/src/app/node_modules/@img /tmp/optionals && \
-#     cp -R /usr/src/app/node_modules/exiftool-vendored.pl /tmp/optionals && \
-#     rm -rf /tmp/optionals/node_modules/@img/*musl*
-# RUN pnpm prune --prod --no-optional && \
-#     mv /tmp/optionals/* ./node_modules/ && \
-#     rm -rf /tmp/optionals
+    pnpm build
+
+FROM dev AS sdk
+
+COPY --chown=node:node open-api/typescript-sdk/ .
+RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
+    pnpm install --frozen-lockfile --no-optional && \
+    pnpm build 
 
 # web production build
 FROM dev AS web
 
-COPY --chown=node:node open-api/typescript-sdk/ ../open-api/typescript-sdk/
-WORKDIR /usr/src/open-api/typescript-sdk
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline --no-optional && \
-    pnpm build && pnpm prune --prod --no-optional
-
-COPY --chown=node:node web /usr/src/app
+COPY --chown=node:node web .
+COPY --from=sdk /usr/src/app /usr/src/open-api/typescript-sdk
 COPY --chown=node:node i18n /usr/src/i18n
-WORKDIR /usr/src/app
 RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline --force && \
-    pnpm build && pnpm prune --prod --no-optional
+    pnpm install --frozen-lockfile && \
+    pnpm build 
 
 FROM dev AS cli
 
-COPY --chown=node:node open-api/typescript-sdk/ ../open-api/typescript-sdk/
-WORKDIR /usr/src/open-api/typescript-sdk
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline --no-optional && \
-    pnpm build && pnpm prune --prod --no-optional
-
-COPY --chown=node:node cli /usr/src/app
-WORKDIR /usr/src/app
+COPY --chown=node:node cli .
+COPY --from=sdk /usr/src/app /usr/src/open-api/typescript-sdk
 # the following command does not use --offline, because the cache created in 
 # the 'dev' stage did not includ the cli depenencies
 RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --force && \
-    pnpm build && pnpm prune --prod --no-optional
-
-RUN touch CLI_SUCCESS
+    pnpm install --frozen-lockfile && \
+    pnpm build 
 
 # prod build
 FROM ghcr.io/immich-app/base-server-prod:202505061115@sha256:9971d3a089787f0bd01f4682141d3665bcf5efb3e101a88e394ffd25bee4eedb
@@ -184,7 +195,7 @@ COPY --chown=node:node --from=prod /usr/src/app/bin ./bin
 COPY --chown=node:node --from=web /usr/src/app/build /build/www
 COPY --chown=node:node --from=cli /usr/src/app/dist ./cli
 COPY --chown=node:node server/resources ./resources/
-COPY --chown=node:node server/package.json server/pnpm-lock.yaml server/pnpm-workspace.yaml server/start*.sh \
+COPY --chown=node:node server/package.json server/pnpm-lock.yaml pnpm-workspace.yaml server/start*.sh \
                        docker/scripts/get-cpus.sh ./
 COPY LICENSE /licenses/LICENSE.txt
 COPY LICENSE /LICENSE
@@ -212,6 +223,8 @@ ENV IMMICH_REPOSITORY_URL=https://github.com/immich-app/immich
 ENV IMMICH_SOURCE_REF=${BUILD_SOURCE_REF}
 ENV IMMICH_SOURCE_COMMIT=${BUILD_SOURCE_COMMIT}
 ENV IMMICH_SOURCE_URL=https://github.com/immich-app/immich/commit/${BUILD_SOURCE_COMMIT}
+
+USER root
 
 VOLUME /usr/src/app/upload
 EXPOSE 2283

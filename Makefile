@@ -87,7 +87,7 @@ test-medium:
     -v ./server/tsconfig.json:/usr/src/app/tsconfig.json \
     -e NODE_ENV=development \
     immich-server:latest \
-    -c "pnpm run test:medium -- --run"
+    -c "pnpm test:medium -- --run"
 test-medium-dev:
 	docker exec -it immich_server /bin/sh -c "pnpm run test:medium"
 

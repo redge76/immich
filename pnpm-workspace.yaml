@@ -6,16 +6,40 @@ packages:
   - server
   - web
 
+dedupePeerDependents: false
+
 ignoredBuiltDependencies:
   - '@tailwindcss/oxide'
+  - canvas
   - es5-ext
   - esbuild
+  - '@nestjs/core'
+  - '@scarf/scarf'
+  - '@swc/core'
+  - bcrypt
+  - cpu-features
+  - msgpackr-extract
+  - protobufjs
+  - ssh2
+  - utimes
 
 onlyBuiltDependencies:
-  - canvas
   - sharp
 
-sharedWorkspaceLockfile: false
-shamefullyHoist: true
-dedupePeerDependents: false
+packageExtensions:
+# these packages use tslib, but do not declare it as a dependency
+  nestjs-kysely:
+    dependencies:
+      tslib: '*'
+  nestjs-otel:
+    dependencies:
+      tslib: '*'
+  sharp:
+    dependencies:
+      '@img/sharp-libvips-linux-x64': '*'
+      '@img/sharp-libvips-linux-arm64': '*'
 preferWorkspacePackages: true
+
+shamefullyHoist: true
+
+sharedWorkspaceLockfile: false

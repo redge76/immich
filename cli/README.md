@@ -9,7 +9,7 @@ Before building the CLI, you must build the immich server and the open-api clien
     # if you don't have node installed
     $ npm install -g pnpm 
     $ pnpm install
-    $ pnpm run build
+    $ pnpm build
 
 Then, to build the open-api client run the following in the open-api folder:
 
@@ -20,7 +20,7 @@ To run the Immich CLI from source, run the following in the cli folder:
     # if you don't have node installed
     $ npm install -g pnpm 
     $ pnpm install
-    $ npm run build
+    $ pnpm build
     $ ts-node .
 
 You'll need ts-node, the easiest way to install it is to use npm:

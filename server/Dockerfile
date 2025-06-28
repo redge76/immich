@@ -30,25 +30,18 @@ COPY --chown=node:node \
     server/pnpm-lock.yaml \
     pnpm-workspace.yaml \
     ./
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm fetch 
+
+RUN pnpm fetch
 
 ENTRYPOINT ["tini", "--", "/bin/sh"]
 
 FROM dev AS dev-docker
 
-WORKDIR /usr/src/app
-VOLUME /usr/src/app/node_modules
-# Run this without build-cache, so these are cached in image itself
-# This will also build node-gyp binaries, like sharp/canvas
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline
+RUN pnpm install
 
 FROM dev AS dev-container-server
 
 USER root
-# Remove app dir from dev container
-RUN rm -rf /usr/src/app
 
 RUN apt-get update && \
     apt-get install sudo inetutils-ping openjdk-11-jre-headless \
@@ -68,7 +61,6 @@ COPY --chmod=777 \
     ../.devcontainer/server/*.sh \
     /immich-devcontainer/
 
-WORKDIR /tmp/build
 COPY --chown=node:node \
     package.json \
     pnpm-lock.yaml \
@@ -92,9 +84,11 @@ COPY --chown=node:node open-api/typescript-sdk/package.json \
     ./open-api/typescript-sdk/
 
 # This will cache all dependencies
-RUN pnpm store prune && pnpm fetch 
+RUN sudo rm -rf /buildcache && mkdir -p /buildcache/pnpm_store
+RUN pnpm install --frozen-lockfile
 WORKDIR /workspaces/immich
-RUN rm -rf /tmp/build
+# Remove app dir from dev container
+RUN sudo rm -rf /usr/src/app
 
 FROM dev-container-server AS dev-container-mobile
 USER root
@@ -138,15 +132,13 @@ USER root
 RUN chown node:node /usr/src/app
 USER node
 COPY --chown=node:node server .
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline && \
+RUN pnpm install --frozen-lockfile --offline && \
     pnpm build
 
 FROM dev AS sdk
 
 COPY --chown=node:node open-api/typescript-sdk/ .
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --no-optional && \
+RUN pnpm install --frozen-lockfile --no-optional && \
     pnpm build 
 
 # web production build
@@ -155,8 +147,7 @@ FROM dev AS web
 COPY --chown=node:node web .
 COPY --from=sdk /usr/src/app /usr/src/open-api/typescript-sdk
 COPY --chown=node:node i18n /usr/src/i18n
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile && \
+RUN pnpm install --frozen-lockfile && \
     pnpm build 
 
 FROM dev AS cli
@@ -165,8 +156,7 @@ COPY --chown=node:node cli .
 COPY --from=sdk /usr/src/app /usr/src/open-api/typescript-sdk
 # the following command does not use --offline, because the cache created in 
 # the 'dev' stage did not includ the cli depenencies
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile && \
+RUN pnpm install --frozen-lockfile && \
     pnpm build 
 
 # prod build
@@ -190,6 +180,7 @@ RUN mkdir -p /buildcache/pnpm_store && \
     chown -R node:node /usr/src/app && \
     chmod 755 /usr/src/app
 
+COPY --chown=node:node --from=prod /buildcache /buildcache
 COPY --chown=node:node --from=prod /usr/src/app/dist ./dist 
 COPY --chown=node:node --from=prod /usr/src/app/bin ./bin
 COPY --chown=node:node --from=web /usr/src/app/build /build/www
@@ -201,11 +192,13 @@ COPY LICENSE /licenses/LICENSE.txt
 COPY LICENSE /LICENSE
 
 USER node
-RUN --mount=type=cache,id=pnpm,target=/buildcache,uid=1000,gid=1000 \
-    pnpm install --frozen-lockfile --offline --prod --no-optional && \
+RUN pnpm install --frozen-lockfile --prod --no-optional && \
     echo '#!/usr/bin/env node' > /usr/src/app/bin/immich && \
     echo 'require("../cli/index.js");' >> /usr/src/app/bin/immich && \
-    chmod +x /usr/src/app/bin/immich 
+    chmod +x /usr/src/app/bin/immich
+USER root
+RUN rm -rf /buildcache /usr/local/etc/npmrc
+USER node
 
 ENV PATH="${PATH}:/usr/src/app/bin"
 

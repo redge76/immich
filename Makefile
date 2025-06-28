@@ -57,6 +57,8 @@ audit-%:
 	pnpm --filter $(call map-package,$*) audit fix
 install-%:
 	pnpm --filter $(call map-package,$*) install
+ci-%:
+	pnpm --filter $(call map-package,$*) install --frozen-lockfile
 build-cli: build-sdk
 build-web: build-sdk
 build-%: install-%
@@ -94,6 +96,9 @@ test-medium-dev:
 install-all: 
 	pnpm -r --filter '!documentation' install
 	
+ci-all: 
+	pnpm -r --filter '!documentation' install --frozen-lockfile
+
 build-all: $(foreach M,$(filter-out e2e docs .github,$(MODULES)),build-$M) ;
 
 check-all: 

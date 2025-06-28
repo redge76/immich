@@ -97,7 +97,7 @@ WORKDIR /workspaces/immich
 RUN rm -rf /tmp/build
 
 FROM dev-container-server AS dev-container-mobile
-
+USER root
 # Enable multiarch for arm64 if necessary
 RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
     sudo dpkg --add-architecture amd64 && \

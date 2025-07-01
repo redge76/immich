@@ -2,6 +2,9 @@
 .github/
 .git/
 
+node_modules
+.pnpm-store
+
 design/
 docker/
 Dockerfile
@@ -24,6 +27,8 @@ cli/Dockerfile
 
 open-api/typescript-sdk/build/
 open-api/typescript-sdk/node_modules/
+!open-api/typescript-sdk/package.json
+!open-api/typescript-sdk/package-lock.json
 
 server/coverage/
 server/node_modules/

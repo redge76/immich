@@ -142,8 +142,8 @@ class ActionService {
     Duration? initialOffset;
     String? initialTimeZone;
     if (remoteIds.length == 1) {
-      final asset = await _remoteAssetRepository.get(remoteIds.first);
-      final exif = await _remoteExifRepository.get(remoteIds.first);
+      final asset = await _remoteAssetRepository.getAsset(remoteIds.first);
+      final exif = await _remoteAssetRepository.getExif(remoteIds.first);
 
       initialDateTime = asset?.localDateTime;
       initialTimeZone = exif?.timeZone;

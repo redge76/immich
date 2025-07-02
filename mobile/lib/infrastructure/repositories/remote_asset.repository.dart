@@ -20,11 +20,11 @@ class RemoteAssetRepository extends DriftDatabaseRepository {
         .getSingleOrNull();
   }
 
-  Future<RemoteAsset?> get(String assetId) {
-    final query = _db.remoteAssetEntity.select()
-      ..where((asset) => asset.id.equals(assetId));
-
-    return query.map((asset) => asset.toDto()).getSingleOrNull();
+  Future<RemoteAsset?> getAsset(String id) {
+    return _db.managers.remoteAssetEntity
+        .filter((row) => row.id.equals(id))
+        .map((row) => row.toDto())
+        .getSingleOrNull();
   }
 
   Future<void> updateFavorite(List<String> ids, bool isFavorite) {

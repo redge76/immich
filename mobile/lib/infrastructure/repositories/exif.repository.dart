@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:immich_mobile/domain/models/exif.model.dart';
 import 'package:immich_mobile/infrastructure/entities/exif.entity.dart'
     as entity;
@@ -40,17 +39,5 @@ class IsarExifRepository extends IsarDatabaseRepository {
       );
       return exifInfos;
     });
-  }
-}
-
-class DriftRemoteExifRepository extends DriftDatabaseRepository {
-  final Drift _db;
-  const DriftRemoteExifRepository(this._db) : super(_db);
-
-  Future<ExifInfo?> get(String assetId) {
-    final query = _db.remoteExifEntity.select()
-      ..where((exif) => exif.assetId.equals(assetId));
-
-    return query.map((exif) => exif.toDto()).getSingleOrNull();
   }
 }

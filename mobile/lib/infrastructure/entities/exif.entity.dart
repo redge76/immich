@@ -133,6 +133,8 @@ class RemoteExifEntity extends Table with DriftDefaultsMixin {
 
   TextColumn get model => text().nullable()();
 
+  TextColumn get lens => text().nullable()();
+
   TextColumn get orientation => text().nullable()();
 
   TextColumn get timeZone => text().nullable()();
@@ -148,18 +150,23 @@ class RemoteExifEntity extends Table with DriftDefaultsMixin {
 extension RemoteExifEntityDataDomainEx on RemoteExifEntityData {
   domain.ExifInfo toDto() => domain.ExifInfo(
         fileSize: fileSize,
-        description: description,
-        orientation: orientation,
-        timeZone: timeZone,
         dateTimeOriginal: dateTimeOriginal,
-        latitude: latitude,
-        longitude: longitude,
+        timeZone: timeZone,
+        make: make,
+        model: model,
+        iso: iso,
         city: city,
         state: state,
         country: country,
-        make: make,
-        model: model,
-        f: fNumber,
-        iso: iso,
+        description: description,
+        orientation: orientation,
+        latitude: latitude,
+        longitude: longitude,
+        f: fNumber?.toDouble(),
+        mm: focalLength?.toDouble(),
+        lens: lens,
+        width: width?.toDouble(),
+        height: height?.toDouble(),
+        isFlipped: ExifDtoConverter.isOrientationFlipped(orientation),
       );
 }

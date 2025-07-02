@@ -5,6 +5,7 @@ import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/infrastructure/repositories/exif.repository.dart';
 import 'package:immich_mobile/infrastructure/repositories/remote_asset.repository.dart';
 import 'package:immich_mobile/providers/infrastructure/asset.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/album.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/exif.provider.dart';
 import 'package:immich_mobile/repositories/asset_api.repository.dart';
 import 'package:immich_mobile/routing/router.dart';
@@ -17,6 +18,7 @@ final actionServiceProvider = Provider<ActionService>(
     ref.watch(assetApiRepositoryProvider),
     ref.watch(remoteAssetRepository),
     ref.watch(remoteExifRepository),
+    ref.watch(remoteAlbumRepository),
   ),
 );
 
@@ -24,11 +26,13 @@ class ActionService {
   final AssetApiRepository _assetApiRepository;
   final DriftRemoteAssetRepository _remoteAssetRepository;
   final DriftRemoteExifRepository _remoteExifRepository;
+  final DriftRemoteAlbumRepository _remoteAlbumRepository;
 
   const ActionService(
     this._assetApiRepository,
     this._remoteAssetRepository,
     this._remoteExifRepository,
+    this._remoteAlbumRepository,
   );
 
   Future<void> shareLink(List<String> remoteIds, BuildContext context) async {
@@ -91,6 +95,11 @@ class ActionService {
       remoteIds,
       AssetVisibility.timeline,
     );
+  }
+
+  Future<void> removeFromAlbum(List<String> remoteIds, String albumId) async {
+    await _assetApiRepository.removeFromAlbum(remoteIds, albumId);
+    await _remoteAlbumRepository.removeFromAlbum(remoteIds, albumId);
   }
 
   Future<bool> editLocation(

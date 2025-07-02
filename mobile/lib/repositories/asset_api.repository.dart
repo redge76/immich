@@ -66,6 +66,15 @@ class AssetApiRepository extends ApiRepository {
     );
   }
 
+  Future<void> removeFromAlbum(
+    List<String> ids,
+    String albumId
+  ) async {
+    return _api.updateAlbum(
+
+    );
+  }
+
   Future<void> updateLocation(
     List<String> ids,
     LatLng location,

@@ -39,6 +39,20 @@ class DriftRemoteAlbumRepository extends DriftDatabaseRepository {
       query.orderBy(orderings);
     }
 
+    Future<void> removeFromAlbum(List<String> ids, String albumId) {
+      return _db.batch((batch) {
+        for (final assetId in ids) {
+          batch.delete(
+            _db.remoteAlbumAssetEntity,
+            RemoteAlbumAssetEntityCompanion(
+              albumId: Value(albumId),
+              assetId: Value(assetId),
+            ),
+          );
+        }
+      });
+    }
+
     return query
         .map(
           (row) => row.readTable(_db.remoteAlbumEntity).toDto(

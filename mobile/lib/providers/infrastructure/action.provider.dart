@@ -173,6 +173,21 @@ class ActionNotifier extends Notifier<void> {
     }
   }
 
+  Future<ActionResult> removeFromAlbum(ActionSource source) async {
+    final ids = _getOwnedRemoteForSource(source);
+    try {
+      await _service.removeFromAlbum(ids);
+      return ActionResult(count: ids.length, success: true);
+    } catch (error, stack) {
+      _logger.severe('Failed to remove assets from album', error, stack);
+      return ActionResult(
+        count: ids.length,
+        success: false,
+        error: error.toString(),
+      );
+    }
+  }
+
   Future<ActionResult?> editLocation(
     ActionSource source,
     BuildContext context,

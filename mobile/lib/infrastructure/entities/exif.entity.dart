@@ -146,7 +146,7 @@ class RemoteExifEntity extends Table with DriftDefaultsMixin {
 }
 
 extension RemoteExifEntityDataDomainEx on RemoteExifEntityData {
-  domain.ExifInfo toDto() => domain.ExifInfo (
+  domain.ExifInfo toDto() => domain.ExifInfo(
         fileSize: fileSize,
         description: description,
         orientation: orientation,

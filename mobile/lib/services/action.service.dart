@@ -145,7 +145,8 @@ class ActionService {
       if (initialDateTime != null && initialTimeZone != null) {
         try {
           final location = getLocation(initialTimeZone);
-          initialOffset = TZDateTime.from(initialDateTime, location).timeZoneOffset;
+          initialOffset =
+              TZDateTime.from(initialDateTime, location).timeZoneOffset;
         } on LocationNotFoundException {
           RegExp re = RegExp(
             r'^utc(?:([+-]\d{1,2})(?::(\d{2}))?)?$',

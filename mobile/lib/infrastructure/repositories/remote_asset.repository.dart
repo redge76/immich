@@ -57,7 +57,8 @@ class DriftRemoteAssetRepository extends DriftDatabaseRepository {
   }
 
   Future<void> updateDateTime(List<String> ids, String dateTime) {
-    final localDateTime = dateTime.replaceAll(RegExp(r'[\+|-][0-9]{2}:[0-9]{2}'), '');
+    final localDateTime =
+        dateTime.replaceAll(RegExp(r'[\+|-][0-9]{2}:[0-9]{2}'), '');
     return _db.batch((batch) async {
       for (final id in ids) {
         batch.update(

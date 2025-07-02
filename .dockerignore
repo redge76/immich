@@ -2,6 +2,8 @@
 .github/
 .git/
 .env*
+*.log
+*.tmp, *.temp
 
 **/Dockerfile
 **/node_modules/

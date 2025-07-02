@@ -41,7 +41,7 @@ class HomeBottomAppBar extends ConsumerWidget {
           isTrashEnable
               ? const TrashActionButton()
               : const DeletePermanentActionButton(),
-          const EditDateTimeActionButton(),
+          const EditDateTimeActionButton(source: ActionSource.timeline),
           const EditLocationActionButton(source: ActionSource.timeline),
           const MoveToLockFolderActionButton(
             source: ActionSource.timeline,

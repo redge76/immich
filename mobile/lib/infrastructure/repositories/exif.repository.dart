@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:immich_mobile/domain/models/exif.model.dart';
 import 'package:immich_mobile/infrastructure/entities/exif.entity.dart'
     as entity;
-import 'package:immich_mobile/infrastructure/entities/exif.entity.drift.dart';
 import 'package:immich_mobile/infrastructure/repositories/db.repository.dart';
 import 'package:isar/isar.dart';
 
@@ -52,27 +51,6 @@ class DriftRemoteExifRepository extends DriftDatabaseRepository {
     final query = _db.remoteExifEntity.select()
       ..where((exif) => exif.assetId.equals(assetId));
 
-    return query.map((asset) => asset.toDto()).getSingleOrNull();
-  }
-}
-
-extension on RemoteExifEntityData {
-  ExifInfo toDto() {
-    return ExifInfo(
-      fileSize: fileSize,
-      description: description,
-      orientation: orientation,
-      timeZone: timeZone,
-      dateTimeOriginal: dateTimeOriginal,
-      latitude: latitude,
-      longitude: longitude,
-      city: city,
-      state: state,
-      country: country,
-      make: make,
-      model: model,
-      f: fNumber,
-      iso: iso,
-    );
+    return query.map((exif) => exif.toDto()).getSingleOrNull();
   }
 }

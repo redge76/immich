@@ -4,13 +4,14 @@ RUN apk add --no-cache tini make
 
 USER node
 WORKDIR /usr/src/app
-COPY --chown=node:node web ./web/
-COPY --chown=node:node open-api ./open-api/
+COPY --chown=node:node ./web ./web/
+COPY --chown=node:node ./open-api ./open-api/
 COPY --chown=node:node Makefile ./
 
-ENV CHOKIDAR_USEPOLLING=true
+WORKDIR /usr/src/app/web
+RUN npm ci
 
+ENV CHOKIDAR_USEPOLLING=true
 EXPOSE 24678
 EXPOSE 3000
-
 ENTRYPOINT ["/sbin/tini", "--", "/bin/sh"]

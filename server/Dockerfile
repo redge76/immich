@@ -1,54 +1,67 @@
 # dev build
-FROM ghcr.io/immich-app/base-server-dev:202505131114@sha256:cf4507bbbf307e9b6d8ee9418993321f2b85867da8ce14d0a20ccaf9574cb995 AS dev
+FROM ghcr.io/immich-app/base-server-dev:commit-95312641aeba3ecaab9d73d05ca5d9746ab633b6 AS dev
 
-RUN apt-get install --no-install-recommends -yqq tini && \
+ENV COREPACK_ENABLE_AUTO_PIN=0 \
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+  CI=1
+
+RUN echo "umask 000" >> /etc/profile && \
+  echo "umask 000" >> /etc/bash.bashrc && \
+  umask 000 && \
+  corepack enable && \
+  corepack install -g pnpm && \
+  apt-get update && \
+  apt-get install --no-install-recommends -yqq tini make && \
+  rm -rf /var/lib/apt/lists && \
   rm -rf /usr/src/app && \
   mkdir -p /usr/src/app
+
 WORKDIR /usr/src/app
-COPY ./server/package* ./server/
-WORKDIR /usr/src/app/server
-RUN npm ci && \
-  # exiftool-vendored.pl, sharp-linux-x64 and sharp-linux-arm64 are the only ones we need
-  # they're marked as optional dependencies, so we need to copy them manually after pruning
-  rm -rf node_modules/@img/sharp-libvips* && \
-  rm -rf node_modules/@img/sharp-linuxmusl-x64
+COPY ./server ./server/
+COPY Makefile ./package* ./pnpm* ./
+
+RUN umask 000 && mkdir -p /buildcache/pnpm-store && \
+  pnpm config set store-dir /buildcache/pnpm-store && \
+  SHARP_IGNORE_GLOBAL_LIBVIPS=true make setup-server-dev
+
 ENV PATH="${PATH}:/usr/src/app/bin" \
   IMMICH_ENV=development \
-  NVIDIA_DRIVER_CAPABILITIES=all \
-  NVIDIA_VISIBLE_DEVICES=all
+  NVIDIA_DRIVER_CAPABILITIES=all
+
 ENTRYPOINT ["tini", "--", "/bin/sh"]
 
 FROM dev AS dev-container-server
 
-RUN rm -rf /usr/src/app
 RUN apt-get update && \
   apt-get install sudo inetutils-ping openjdk-11-jre-headless \
-  vim nano \
-  -y --no-install-recommends --fix-missing
+  vim nano -y --no-install-recommends --fix-missing && \
+  rm -rf /var/lib/apt/lists
+RUN usermod -aG sudo node && \
+  echo "node ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+  # create workspaces dirs
+  mkdir -p /workspaces/immich && \
+  mkdir /immich-devcontainer;
 
-RUN usermod -aG sudo node
-RUN echo "node ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-RUN mkdir -p /workspaces/immich
-RUN chown node -R /workspaces
-COPY --chown=node:node --chmod=777 ../.devcontainer/server/*.sh /immich-devcontainer/
+WORKDIR /workspaces/immich
+# Remove app dir from dev container
+RUN rm -rf /usr/src/app
 
-USER node
-COPY --chown=node:node .. /tmp/create-dep-cache/
-WORKDIR /tmp/create-dep-cache
-RUN make ci-all && rm -rf /tmp/create-dep-cache
+COPY --chmod=777 ../.devcontainer/server/*.sh /immich-devcontainer/
 
+WORKDIR /workspaces/immich
 
 FROM dev-container-server AS dev-container-mobile
+
 USER root
 # Enable multiarch for arm64 if necessary
 RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
-  dpkg --add-architecture amd64 && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends \
+  sudo dpkg --add-architecture amd64 && \
+  sudo apt-get install -y --no-install-recommends \
   qemu-user-static \
   libc6:amd64 \
   libstdc++6:amd64 \
-  libgcc1:amd64; \
+  libgcc1:amd64 && \
+  rm -rf /var/lib/apt/lists; \
   fi
 
 # Flutter SDK
@@ -65,57 +78,68 @@ RUN mkdir -p ${FLUTTER_HOME} \
   && rm flutter.tar.xz \
   && chown -R node ${FLUTTER_HOME}
 
-USER node
-RUN sudo apt-get update \
-  && wget -qO- https://dcm.dev/pgp-key.public | sudo gpg --dearmor -o /usr/share/keyrings/dcm.gpg \
-  && echo 'deb [signed-by=/usr/share/keyrings/dcm.gpg arch=amd64] https://dcm.dev/debian stable main' | sudo tee /etc/apt/sources.list.d/dart_stable.list \
-  && sudo apt-get update \
-  && sudo apt-get install dcm -y
+RUN wget -qO- https://dcm.dev/pgp-key.public | gpg --dearmor -o /usr/share/keyrings/dcm.gpg \
+  && echo 'deb [signed-by=/usr/share/keyrings/dcm.gpg arch=amd64] https://dcm.dev/debian stable main' | tee /etc/apt/sources.list.d/dart_stable.list \
+  && apt-get update \
+  && apt-get install dcm -y && \
+  && rm -rf /var/lib/apt/lists
 
 COPY --chmod=777 ../.devcontainer/mobile/container-mobile-post-create.sh /immich-devcontainer/container-mobile-post-create.sh
 
 RUN dart --disable-analytics
+USER node
 
-FROM dev AS prod
+# server production build
+FROM dev AS server-prod
 
-COPY server .
-RUN npm run build
-RUN npm prune --omit=dev --omit=optional
-COPY --from=dev /usr/src/app/server/node_modules/@img ./node_modules/@img
-COPY --from=dev /usr/src/app/server/node_modules/exiftool-vendored.pl ./node_modules/exiftool-vendored.pl
+RUN pnpm --filter immich install --frozen-lockfile && \
+  pnpm --filter immich build && \
+  pnpm --filter immich --prod --no-optional deploy /output/server-pruned
 
-# web build
-FROM node:22.16.0-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679f9b7b298eaa2f1ed8b7e AS web
+# web production build
+FROM dev AS web-prod
 
-WORKDIR /usr/src/app
+COPY ./open-api/typescript-sdk ./open-api/typescript-sdk/
 COPY ./web ./web/
 COPY ./i18n ./i18n/
+RUN pnpm install --filter @immich/sdk --filter immich-web --frozen-lockfile && \
+  pnpm --filter @immich/sdk build && \
+  pnpm --filter immich-web build
+
+FROM dev AS cli-prod
+
+COPY ./cli ./cli/
 COPY ./open-api/typescript-sdk ./open-api/typescript-sdk/
-
-WORKDIR /usr/src/app/open-api/typescript-sdk
-RUN npm ci && npm run build
-
-WORKDIR /usr/src/app/web
-RUN npm ci && npm run build
+RUN pnpm install --filter @immich/sdk --filter @immich/cli --frozen-lockfile && \
+  pnpm --filter @immich/sdk build && \
+  pnpm --filter @immich/cli build && \
+  pnpm --filter @immich/cli --prod --no-optional deploy /output/cli-pruned
 
 # prod build
-FROM ghcr.io/immich-app/base-server-prod:202505061115@sha256:9971d3a089787f0bd01f4682141d3665bcf5efb3e101a88e394ffd25bee4eedb
+FROM ghcr.io/immich-app/base-server-prod:commit-95312641aeba3ecaab9d73d05ca5d9746ab633b6
 
-WORKDIR /usr/src/app
 ENV NODE_ENV=production \
   NVIDIA_DRIVER_CAPABILITIES=all \
-  NVIDIA_VISIBLE_DEVICES=all
-COPY --from=prod /usr/src/app/server/node_modules ./node_modules
-COPY --from=prod /usr/src/app/server/dist ./dist
-COPY --from=prod /usr/src/app/server/bin ./bin
-COPY --from=web /usr/src/app/web/build /build/www
-COPY ./server/resources resources
-COPY ./server/package.json server/package-lock.json ./
-COPY ./server/start*.sh ./
-COPY "docker/scripts/get-cpus.sh" ./
-RUN npm install -g @immich/cli && npm cache clean --force
+  NVIDIA_VISIBLE_DEVICES=all \
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
+RUN corepack enable && \
+  corepack install -g pnpm && \
+  mkdir -p /usr/src/app/upload
+
+WORKDIR /usr/src/app
+COPY --from=server-prod /output/server-pruned/dist ./dist
+COPY --from=server-prod /output/server-pruned/bin ./bin
+COPY --from=server-prod /output/server-pruned/package.json ./
+COPY --from=server-prod /output/server-pruned/node_modules/ ./node_modules
+COPY --from=web-prod /usr/src/app/web/build /build/www
+COPY --from=cli-prod /output/cli-pruned ./cli
+RUN ln -S ./cli/bin/immich /usr/src/app/bin/immich
+COPY server/resources ./resources/
+COPY server/start*.sh docker/scripts/get-cpus.sh ./
 COPY LICENSE /licenses/LICENSE.txt
 COPY LICENSE /LICENSE
+
 ENV PATH="${PATH}:/usr/src/app/bin"
 
 ARG BUILD_ID

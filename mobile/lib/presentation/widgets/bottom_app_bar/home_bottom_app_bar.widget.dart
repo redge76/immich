@@ -12,7 +12,7 @@ import 'package:immich_mobile/presentation/widgets/action_buttons/move_to_lock_f
 import 'package:immich_mobile/presentation/widgets/action_buttons/share_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/share_link_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/stack_action_button.widget.dart';
-import 'package:immich_mobile/presentation/widgets/action_buttons/trash_action_buton.widget.dart';
+import 'package:immich_mobile/presentation/widgets/action_buttons/trash_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/upload_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/bottom_app_bar/base_bottom_sheet.widget.dart';
 import 'package:immich_mobile/providers/server_info.provider.dart';
@@ -39,8 +39,10 @@ class HomeBottomAppBar extends ConsumerWidget {
           const FavoriteActionButton(source: ActionSource.timeline),
           const DownloadActionButton(),
           isTrashEnable
-              ? const TrashActionButton()
-              : const DeletePermanentActionButton(),
+              ? const TrashActionButton(source: ActionSource.timeline)
+              : const DeletePermanentActionButton(
+                  source: ActionSource.timeline,
+                ),
           const EditDateTimeActionButton(),
           const EditLocationActionButton(source: ActionSource.timeline),
           const MoveToLockFolderActionButton(

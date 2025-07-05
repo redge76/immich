@@ -2,7 +2,9 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:immich_mobile/domain/models/log.model.dart';
+import 'package:immich_mobile/domain/models/memory.model.dart';
 import 'package:immich_mobile/domain/models/user.model.dart';
+import 'package:immich_mobile/domain/services/timeline.service.dart';
 import 'package:immich_mobile/entities/album.entity.dart';
 import 'package:immich_mobile/entities/asset.entity.dart';
 import 'package:immich_mobile/models/folder/recursive_folder.model.dart';
@@ -70,6 +72,8 @@ import 'package:immich_mobile/presentation/pages/dev/main_timeline.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/media_stat.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/remote_timeline.page.dart';
 import 'package:immich_mobile/presentation/pages/drift_album.page.dart';
+import 'package:immich_mobile/presentation/pages/drift_memory.page.dart';
+import 'package:immich_mobile/presentation/widgets/asset_viewer/asset_viewer.page.dart';
 import 'package:immich_mobile/providers/api.provider.dart';
 import 'package:immich_mobile/providers/gallery_permission.provider.dart';
 import 'package:immich_mobile/routing/auth_guard.dart';
@@ -81,6 +85,7 @@ import 'package:immich_mobile/services/api.service.dart';
 import 'package:immich_mobile/services/local_auth.service.dart';
 import 'package:immich_mobile/services/secure_storage.service.dart';
 import 'package:immich_mobile/widgets/asset_grid/asset_grid_data_structure.dart';
+
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 part 'router.gr.dart';
@@ -371,6 +376,23 @@ class AppRouter extends RootStackRouter {
       page: RemoteTimelineRoute.page,
       guards: [_authGuard, _duplicateGuard],
     ),
+    AutoRoute(
+      page: AssetViewerRoute.page,
+      guards: [_authGuard, _duplicateGuard],
+      type: RouteType.custom(
+        customRouteBuilder: <T>(context, child, page) => PageRouteBuilder<T>(
+          fullscreenDialog: page.fullscreenDialog,
+          settings: page,
+          pageBuilder: (_, __, ___) => child,
+          opaque: false,
+        ),
+      ),
+    ),
+    AutoRoute(
+      page: DriftMemoryRoute.page,
+      guards: [_authGuard, _duplicateGuard],
+    ),
+
     // required to handle all deeplinks in deep_link.service.dart
     // auto_route_library#1722
     RedirectRoute(path: '*', redirectTo: '/'),

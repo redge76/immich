@@ -7,6 +7,7 @@ import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/domain/models/setting.model.dart';
 import 'package:immich_mobile/domain/models/timeline.model.dart';
 import 'package:immich_mobile/domain/services/setting.service.dart';
+import 'package:immich_mobile/domain/utils/event_stream.dart';
 import 'package:immich_mobile/infrastructure/repositories/timeline.repository.dart';
 import 'package:immich_mobile/utils/async_mutex.dart';
 
@@ -57,14 +58,19 @@ class TimelineFactory {
 class TimelineService {
   final TimelineAssetSource _assetSource;
   final TimelineBucketSource _bucketSource;
+  int _totalAssets = 0;
+  int get totalAssets => _totalAssets;
 
   TimelineService({
     required TimelineAssetSource assetSource,
     required TimelineBucketSource bucketSource,
   })  : _assetSource = assetSource,
         _bucketSource = bucketSource {
-    _bucketSubscription =
-        _bucketSource().listen((_) => unawaited(reloadBucket()));
+    _bucketSubscription = _bucketSource().listen((buckets) {
+      _totalAssets =
+          buckets.fold<int>(0, (acc, bucket) => acc + bucket.assetCount);
+      unawaited(_reloadBucket());
+    });
   }
 
   final AsyncMutex _mutex = AsyncMutex();
@@ -74,8 +80,9 @@ class TimelineService {
 
   Stream<List<Bucket>> Function() get watchBuckets => _bucketSource;
 
-  Future<void> reloadBucket() => _mutex.run(() async {
+  Future<void> _reloadBucket() => _mutex.run(() async {
         _buffer = await _assetSource(_bufferOffset, _buffer.length);
+        EventStream.shared.emit(const TimelineReloadEvent());
       });
 
   Future<List<BaseAsset>> loadAssets(int index, int count) =>
@@ -117,11 +124,23 @@ class TimelineService {
       index >= _bufferOffset && index + count <= _bufferOffset + _buffer.length;
 
   List<BaseAsset> getAssets(int index, int count) {
+    assert(index + count <= totalAssets);
     if (!hasRange(index, count)) {
       throw RangeError('TimelineService::getAssets Index out of range');
     }
     int start = index - _bufferOffset;
     return _buffer.slice(start, start + count);
+  }
+
+  // Pre-cache assets around the given index for asset viewer
+  Future<void> preCacheAssets(int index) =>
+      _mutex.run(() => _loadAssets(index, 5));
+
+  BaseAsset getAsset(int index) {
+    if (!hasRange(index, 1)) {
+      throw RangeError('TimelineService::getAsset Index out of range');
+    }
+    return _buffer.elementAt(index - _bufferOffset);
   }
 
   Future<void> dispose() async {

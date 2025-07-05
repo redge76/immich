@@ -1,5 +1,5 @@
-part 'remote_asset.model.dart';
 part 'local_asset.model.dart';
+part 'remote_asset.model.dart';
 
 enum AssetType {
   // do not change this order!
@@ -40,7 +40,24 @@ sealed class BaseAsset {
 
   bool get isImage => type == AssetType.image;
   bool get isVideo => type == AssetType.video;
+
+  double? get aspectRatio {
+    if (width != null && height != null && height! > 0) {
+      return width! / height!;
+    }
+    return null;
+  }
+
+  bool get hasRemote =>
+      storage == AssetState.remote || storage == AssetState.merged;
+  bool get hasLocal =>
+      storage == AssetState.local || storage == AssetState.merged;
+  bool get isLocalOnly => storage == AssetState.local;
+  bool get isRemoteOnly => storage == AssetState.remote;
+
+  // Overridden in subclasses
   AssetState get storage;
+  String get heroTag;
 
   @override
   String toString() {

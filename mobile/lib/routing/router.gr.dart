@@ -404,6 +404,58 @@ class ArchiveRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [AssetViewerPage]
+class AssetViewerRoute extends PageRouteInfo<AssetViewerRouteArgs> {
+  AssetViewerRoute({
+    Key? key,
+    required int initialIndex,
+    required TimelineService timelineService,
+    List<PageRouteInfo>? children,
+  }) : super(
+          AssetViewerRoute.name,
+          args: AssetViewerRouteArgs(
+            key: key,
+            initialIndex: initialIndex,
+            timelineService: timelineService,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'AssetViewerRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<AssetViewerRouteArgs>();
+      return AssetViewerPage(
+        key: args.key,
+        initialIndex: args.initialIndex,
+        timelineService: args.timelineService,
+      );
+    },
+  );
+}
+
+class AssetViewerRouteArgs {
+  const AssetViewerRouteArgs({
+    this.key,
+    required this.initialIndex,
+    required this.timelineService,
+  });
+
+  final Key? key;
+
+  final int initialIndex;
+
+  final TimelineService timelineService;
+
+  @override
+  String toString() {
+    return 'AssetViewerRouteArgs{key: $key, initialIndex: $initialIndex, timelineService: $timelineService}';
+  }
+}
+
+/// generated route for
 /// [BackupAlbumSelectionPage]
 class BackupAlbumSelectionRoute extends PageRouteInfo<void> {
   const BackupAlbumSelectionRoute({List<PageRouteInfo>? children})
@@ -564,6 +616,58 @@ class DriftAlbumsRoute extends PageRouteInfo<void> {
       return const DriftAlbumsPage();
     },
   );
+}
+
+/// generated route for
+/// [DriftMemoryPage]
+class DriftMemoryRoute extends PageRouteInfo<DriftMemoryRouteArgs> {
+  DriftMemoryRoute({
+    required List<DriftMemory> memories,
+    required int memoryIndex,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+          DriftMemoryRoute.name,
+          args: DriftMemoryRouteArgs(
+            memories: memories,
+            memoryIndex: memoryIndex,
+            key: key,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'DriftMemoryRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<DriftMemoryRouteArgs>();
+      return DriftMemoryPage(
+        memories: args.memories,
+        memoryIndex: args.memoryIndex,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class DriftMemoryRouteArgs {
+  const DriftMemoryRouteArgs({
+    required this.memories,
+    required this.memoryIndex,
+    this.key,
+  });
+
+  final List<DriftMemory> memories;
+
+  final int memoryIndex;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'DriftMemoryRouteArgs{memories: $memories, memoryIndex: $memoryIndex, key: $key}';
+  }
 }
 
 /// generated route for

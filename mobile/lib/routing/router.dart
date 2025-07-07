@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:immich_mobile/domain/models/log.model.dart';
+import 'package:immich_mobile/domain/models/memory.model.dart';
 import 'package:immich_mobile/domain/models/user.model.dart';
 import 'package:immich_mobile/domain/services/timeline.service.dart';
 import 'package:immich_mobile/entities/album.entity.dart';
@@ -65,12 +66,16 @@ import 'package:immich_mobile/pages/search/person_result.page.dart';
 import 'package:immich_mobile/pages/search/recently_taken.page.dart';
 import 'package:immich_mobile/pages/search/search.page.dart';
 import 'package:immich_mobile/pages/share_intent/share_intent.page.dart';
+import 'package:immich_mobile/presentation/pages/dev/drift_trash.page.dart';
+import 'package:immich_mobile/presentation/pages/dev/drift_archive.page.dart';
+import 'package:immich_mobile/presentation/pages/dev/drift_locked_folder.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/feat_in_development.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/local_timeline.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/main_timeline.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/media_stat.page.dart';
 import 'package:immich_mobile/presentation/pages/dev/remote_timeline.page.dart';
 import 'package:immich_mobile/presentation/pages/drift_album.page.dart';
+import 'package:immich_mobile/presentation/pages/drift_memory.page.dart';
 import 'package:immich_mobile/presentation/widgets/asset_viewer/asset_viewer.page.dart';
 import 'package:immich_mobile/providers/api.provider.dart';
 import 'package:immich_mobile/providers/gallery_permission.provider.dart';
@@ -83,6 +88,7 @@ import 'package:immich_mobile/services/api.service.dart';
 import 'package:immich_mobile/services/local_auth.service.dart';
 import 'package:immich_mobile/services/secure_storage.service.dart';
 import 'package:immich_mobile/widgets/asset_grid/asset_grid_data_structure.dart';
+
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 part 'router.gr.dart';
@@ -384,6 +390,22 @@ class AppRouter extends RootStackRouter {
           opaque: false,
         ),
       ),
+    ),
+    AutoRoute(
+      page: DriftMemoryRoute.page,
+      guards: [_authGuard, _duplicateGuard],
+    ),
+    AutoRoute(
+      page: DriftTrashRoute.page,
+      guards: [_authGuard, _duplicateGuard],
+    ),
+    AutoRoute(
+      page: DriftArchiveRoute.page,
+      guards: [_authGuard, _duplicateGuard],
+    ),
+    AutoRoute(
+      page: DriftLockedFolderRoute.page,
+      guards: [_authGuard, _duplicateGuard],
     ),
     // required to handle all deeplinks in deep_link.service.dart
     // auto_route_library#1722

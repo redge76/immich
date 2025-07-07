@@ -13,6 +13,26 @@ class RemoteAssetRepository extends DriftDatabaseRepository {
   final Drift _db;
   const RemoteAssetRepository(this._db) : super(_db);
 
+  Stream<RemoteAsset?> watchAsset(String id) {
+    final query = _db.remoteAssetEntity
+        .select()
+        .addColumns([_db.localAssetEntity.id]).join([
+      leftOuterJoin(
+        _db.localAssetEntity,
+        _db.remoteAssetEntity.checksum.equalsExp(_db.localAssetEntity.checksum),
+        useColumns: false,
+      ),
+    ])
+      ..where(_db.remoteAssetEntity.id.equals(id));
+
+    return query.map((row) {
+      final asset = row.readTable(_db.remoteAssetEntity).toDto();
+      return asset.copyWith(
+        localId: row.read(_db.localAssetEntity.id),
+      );
+    }).watchSingleOrNull();
+  }
+
   Future<ExifInfo?> getExif(String id) {
     return _db.managers.remoteExifEntity
         .filter((row) => row.assetId.id.equals(id))

@@ -137,6 +137,11 @@ final _features = [
     icon: Icons.schedule_outlined,
     onTap: (ctx, _) => ctx.pushRoute(const DriftRecentlyTakenRoute()),
   ),
+  _Feature(
+    name: 'Map',
+    icon: Icons.map_outlined,
+    onTap: (ctx, _) => ctx.pushRoute(const DriftMapRoute()),
+  ),
 ];
 
 @RoutePage()

@@ -28,4 +28,7 @@ class PersonEntity extends Table with DriftDefaultsMixin {
   TextColumn get color => text().nullable()();
 
   DateTimeColumn get birthDate => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
